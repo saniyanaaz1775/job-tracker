@@ -464,6 +464,38 @@
     });
 
     app.appendChild(container);
+    // add recent status updates section
+    const updates = loadStatusUpdates();
+    const recent = updates.slice(-10).reverse();
+    const updatesWrap = document.createElement('div');
+    updatesWrap.className = 'digest-updates';
+    const upTitle = document.createElement('h3');
+    upTitle.className = 'ph-title';
+    upTitle.textContent = 'Recent Status Updates';
+    updatesWrap.appendChild(upTitle);
+    if (!recent.length) {
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = 'No recent status updates.';
+      updatesWrap.appendChild(p);
+    } else {
+      recent.forEach(u => {
+        const job = JOBS.find(j=>j.id === u.jobId) || { title: u.jobId, company: '' };
+        const row = document.createElement('div');
+        row.className = 'digest-update';
+        const left = document.createElement('div');
+        left.className = 'left';
+        left.textContent = `${job.title} — ${job.company}`;
+        const right = document.createElement('div');
+        right.className = 'right';
+        const dt = new Date(u.date);
+        right.textContent = `${u.status} • ${dt.toLocaleString()}`;
+        row.appendChild(left);
+        row.appendChild(right);
+        updatesWrap.appendChild(row);
+      });
+    }
+    container.appendChild(updatesWrap);
   }
 
   function renderProof() {
@@ -566,6 +598,61 @@
     handleRoute();
   }
 
+  /* --- Status tracking (localStorage) --- */
+  const STATUS_KEY = 'jobTrackerStatus';
+  const STATUS_UPDATES_KEY = 'jobTrackerStatusUpdates';
+
+  function loadStatuses() {
+    try {
+      const raw = localStorage.getItem(STATUS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveStatuses(map) {
+    try {
+      localStorage.setItem(STATUS_KEY, JSON.stringify(map));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function getStatus(jobId) {
+    const map = loadStatuses();
+    return map[jobId] || 'Not Applied';
+  }
+
+  function setStatus(jobId, status) {
+    const map = loadStatuses();
+    map[jobId] = status;
+    saveStatuses(map);
+    recordStatusUpdate(jobId, status);
+  }
+
+  function recordStatusUpdate(jobId, status) {
+    try {
+      const raw = localStorage.getItem(STATUS_UPDATES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.push({ jobId, status, date: new Date().toISOString() });
+      // keep recent 200
+      const trimmed = arr.slice(-200);
+      localStorage.setItem(STATUS_UPDATES_KEY, JSON.stringify(trimmed));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function loadStatusUpdates() {
+    try {
+      const raw = localStorage.getItem(STATUS_UPDATES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   function openModal(job) {
     if (!modal) return;
     modal.setAttribute('aria-hidden', 'false');
@@ -648,6 +735,27 @@
     }
   });
 
+  /* --- Toasts --- */
+  function ensureToastContainer() {
+    if (document.querySelector('.toast-container')) return;
+    const tc = document.createElement('div');
+    tc.className = 'toast-container';
+    document.body.appendChild(tc);
+  }
+
+  function showToast(message, ms = 2500) {
+    ensureToastContainer();
+    const container = document.querySelector('.toast-container');
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = message;
+    container.appendChild(t);
+    setTimeout(()=> {
+      t.style.opacity = '0';
+      setTimeout(()=> t.remove(), 300);
+    }, ms);
+  }
+
   /* --- JOB LIST RENDERING + FILTERS --- */
   function renderJobCard(job) {
     const card = document.createElement('article');
@@ -688,6 +796,35 @@
     details.className = 'job-meta';
     details.textContent = `${job.experience} • ${job.salaryRange} • ${job.postedDaysAgo} days ago`;
     card.appendChild(details);
+    // status display + controls
+    const statusWrap = document.createElement('div');
+    statusWrap.className = 'status-group';
+    const currentStatus = getStatus(job.id);
+    const statusBadge = document.createElement('div');
+    statusBadge.className = 'status-badge';
+    statusBadge.textContent = currentStatus;
+    if (currentStatus === 'Applied') statusBadge.classList.add('status-applied');
+    else if (currentStatus === 'Rejected') statusBadge.classList.add('status-rejected');
+    else if (currentStatus === 'Selected') statusBadge.classList.add('status-selected');
+    else statusBadge.classList.add('status-neutral');
+    statusWrap.appendChild(statusBadge);
+
+    const statuses = ['Not Applied','Applied','Rejected','Selected'];
+    statuses.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'status-btn';
+      btn.textContent = s;
+      btn.addEventListener('click', () => {
+        setStatus(job.id, s);
+        // show toast
+        showToast(`Status updated: ${s}`);
+        // refresh lists minimally
+        if (location.hash === '#/dashboard') renderJobList();
+        if (location.hash === '#/saved') renderSaved();
+      });
+      statusWrap.appendChild(btn);
+    });
+    card.appendChild(statusWrap);
 
     const actions = document.createElement('div');
     actions.className = 'job-actions';
@@ -738,6 +875,13 @@
     }
     if (filters.source) {
       out = out.filter(j => j.source === filters.source);
+    }
+    // status filter (AND logic)
+    if (filters.status && filters.status !== 'All') {
+      out = out.filter(j => {
+        const st = getStatus(j.id) || 'Not Applied';
+        return st === filters.status;
+      });
     }
     // Sorting: latest, oldest, match, salary
     if (filters.sort === 'latest') {
@@ -955,6 +1099,20 @@
     fiSrc.appendChild(labSrc);
     fiSrc.appendChild(selSrc);
     filterBar.appendChild(fiSrc);
+
+    // status filter
+    const fiStatus = document.createElement('div');
+    fiStatus.className = 'filter-item';
+    const labStatus = document.createElement('label');
+    labStatus.textContent = 'Status';
+    const selStatus = document.createElement('select');
+    selStatus.className = 'filter-select';
+    ['All','Not Applied','Applied','Rejected','Selected'].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; selStatus.appendChild(o);});
+    selStatus.value = filters.status || 'All';
+    selStatus.addEventListener('change', (e)=>{ filters.status = e.target.value; renderJobList(); });
+    fiStatus.appendChild(labStatus);
+    fiStatus.appendChild(selStatus);
+    filterBar.appendChild(fiStatus);
 
     // sort
     const fiSort = document.createElement('div');

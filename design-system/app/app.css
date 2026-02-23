@@ -341,6 +341,90 @@
   color: rgba(17,17,17,0.65);
   margin-top: var(--space-sm);
 }
+
+/* Status controls & badges */
+.status-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.status-btn {
+  padding: 6px 10px;
+  border-radius: calc(var(--radius-base) - 2px);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+}
+.status-badge {
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.status-neutral {
+  background: transparent;
+  border: 1px solid rgba(17,17,17,0.15);
+  color: rgba(17,17,17,0.7);
+}
+.status-applied {
+  background: transparent;
+  border: 1px solid #2B6CB0;
+  color: #2B6CB0;
+}
+.status-rejected {
+  background: transparent;
+  border: 1px solid #C53030;
+  color: #C53030;
+}
+.status-selected {
+  background: transparent;
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  right: var(--space-md);
+  bottom: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+.toast {
+  background: var(--color-surface);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  padding: 10px 12px;
+  border-radius: var(--radius-base);
+  box-shadow: none;
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+/* Digest recent updates */
+.digest-updates {
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--color-border-muted);
+  padding-top: var(--space-md);
+}
+.digest-update {
+  display:flex;
+  justify-content:space-between;
+  gap:var(--space-sm);
+  padding:6px 0;
+  border-bottom:1px solid transparent;
+}
+.digest-update .left {
+  font-size:13px;
+}
+.digest-update .right {
+  font-size:12px;
+  color:rgba(17,17,17,0.7);
+}
 .job-actions {
   display: flex;
   gap: var(--space-sm);

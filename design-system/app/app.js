@@ -46,6 +46,7 @@
   }
 
   function renderSettings() {
+    // Build full preferences form with save/load to localStorage
     app.innerHTML = '';
     const container = document.createElement('section');
     container.className = 'card';
@@ -54,78 +55,141 @@
     heading.textContent = 'Settings';
     container.appendChild(heading);
 
+    const prefs = getPreferencesOrDefaults();
+
     const form = document.createElement('div');
     form.className = 'form';
 
-    // Role keywords
+    // Role keywords (comma-separated)
     const row1 = document.createElement('div');
     row1.className = 'form-row';
     const label1 = document.createElement('label');
-    label1.textContent = 'Role keywords';
+    label1.textContent = 'Role keywords (comma-separated)';
     const input1 = document.createElement('input');
     input1.className = 'input';
     input1.placeholder = 'e.g., Product Manager, Backend Engineer';
+    input1.value = Array.isArray(prefs.roleKeywords) ? prefs.roleKeywords.join(', ') : (prefs.roleKeywords || '');
     row1.appendChild(label1);
     row1.appendChild(input1);
     form.appendChild(row1);
 
-    // Preferred locations
+    // Preferred locations (multi-select)
     const row2 = document.createElement('div');
     row2.className = 'form-row';
     const label2 = document.createElement('label');
-    label2.textContent = 'Preferred locations';
-    const input2 = document.createElement('input');
-    input2.className = 'input';
-    input2.placeholder = 'e.g., New York, Remote, London';
+    label2.textContent = 'Preferred locations (multi-select)';
+    const selLoc = document.createElement('select');
+    selLoc.className = 'input';
+    selLoc.multiple = true;
+    const allLocs = uniqueValues(JOBS, 'location');
+    allLocs.forEach(l => {
+      const o = document.createElement('option');
+      o.value = l;
+      o.textContent = l;
+      if (prefs.preferredLocations && prefs.preferredLocations.includes(l)) o.selected = true;
+      selLoc.appendChild(o);
+    });
     row2.appendChild(label2);
-    row2.appendChild(input2);
+    row2.appendChild(selLoc);
     form.appendChild(row2);
 
-    // Mode
+    // preferredMode (checkboxes)
     const row3 = document.createElement('div');
     row3.className = 'form-row';
     const label3 = document.createElement('label');
-    label3.textContent = 'Mode';
-    const radioGroup = document.createElement('div');
-    radioGroup.className = 'radio-group';
-    ['Remote', 'Hybrid', 'Onsite'].forEach((mode) => {
+    label3.textContent = 'Preferred mode';
+    const modesWrap = document.createElement('div');
+    modesWrap.className = 'radio-group';
+    ['Remote', 'Hybrid', 'Onsite'].forEach((m) => {
       const wrap = document.createElement('label');
       wrap.className = 'radio';
-      const r = document.createElement('input');
-      r.type = 'radio';
-      r.name = 'mode';
-      r.disabled = true; // placeholder UI only
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = m;
+      if (prefs.preferredMode && prefs.preferredMode.includes(m)) cb.checked = true;
       const span = document.createElement('span');
-      span.textContent = mode;
-      wrap.appendChild(r);
+      span.textContent = m;
+      wrap.appendChild(cb);
       wrap.appendChild(span);
-      radioGroup.appendChild(wrap);
+      modesWrap.appendChild(wrap);
     });
     row3.appendChild(label3);
-    row3.appendChild(radioGroup);
+    row3.appendChild(modesWrap);
     form.appendChild(row3);
 
-    // Experience level
+    // experienceLevel dropdown (values match job.experience)
     const row4 = document.createElement('div');
     row4.className = 'form-row';
     const label4 = document.createElement('label');
     label4.textContent = 'Experience level';
-    const sel = document.createElement('select');
-    sel.className = 'input';
-    ['Entry', 'Mid', 'Senior', 'Director'].forEach((opt) => {
-      const o = document.createElement('option');
-      o.value = opt.toLowerCase();
-      o.textContent = opt;
-      sel.appendChild(o);
-    });
-    sel.disabled = true; // placeholder only
+    const selExp = document.createElement('select');
+    selExp.className = 'input';
+    ['', 'Fresher','0-1','1-3','3-5'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'Any'; selExp.appendChild(o);});
+    selExp.value = prefs.experienceLevel || '';
     row4.appendChild(label4);
-    row4.appendChild(sel);
+    row4.appendChild(selExp);
     form.appendChild(row4);
+
+    // skills (comma-separated)
+    const row5 = document.createElement('div');
+    row5.className = 'form-row';
+    const label5 = document.createElement('label');
+    label5.textContent = 'Skills (comma-separated)';
+    const input5 = document.createElement('input');
+    input5.className = 'input';
+    input5.placeholder = 'e.g., React, Node.js, SQL';
+    input5.value = Array.isArray(prefs.skills) ? prefs.skills.join(', ') : (prefs.skills || '');
+    row5.appendChild(label5);
+    row5.appendChild(input5);
+    form.appendChild(row5);
+
+    // minMatchScore slider
+    const row6 = document.createElement('div');
+    row6.className = 'form-row';
+    const label6 = document.createElement('label');
+    label6.textContent = 'Minimum match score threshold';
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = 0;
+    slider.max = 100;
+    slider.value = prefs.minMatchScore || 40;
+    slider.className = 'input';
+    const sliderVal = document.createElement('div');
+    sliderVal.textContent = slider.value;
+    slider.addEventListener('input', ()=>{ sliderVal.textContent = slider.value; });
+    row6.appendChild(label6);
+    row6.appendChild(slider);
+    row6.appendChild(sliderVal);
+    form.appendChild(row6);
+
+    // Save button
+    const saveRow = document.createElement('div');
+    saveRow.className = 'form-row';
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn--primary';
+    saveBtn.textContent = 'Save preferences';
+    saveBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const prefsOut = {
+        roleKeywords: input1.value.split(',').map(s=>s.trim()).filter(Boolean),
+        preferredLocations: Array.from(selLoc.selectedOptions).map(o=>o.value),
+        preferredMode: Array.from(modesWrap.querySelectorAll('input[type=checkbox]')).filter(i=>i.checked).map(i=>i.value),
+        experienceLevel: selExp.value,
+        skills: input5.value.split(',').map(s=>s.trim()).filter(Boolean),
+        minMatchScore: Number(slider.value)
+      };
+      savePreferences(prefsOut);
+      // immediate feedback: recompute match scores if on dashboard
+      if (location.hash === '#/dashboard' || location.hash === '#/') {
+        handleRoute();
+      }
+    });
+    saveRow.appendChild(saveBtn);
+    form.appendChild(saveRow);
 
     const note = document.createElement('p');
     note.className = 'muted';
-    note.textContent = 'This page shows preference placeholders. No saving is implemented.';
+    note.textContent = 'Preferences are stored locally in your browser.';
     form.appendChild(note);
 
     container.appendChild(form);
@@ -157,6 +221,8 @@
     container.appendChild(heading);
 
     const ids = getSavedIds();
+    const prefs = loadPreferences();
+    if (prefs) computeAllMatchScores();
     if (!ids.length) {
       const empty = document.createElement('div');
       empty.className = 'placeholder card';
@@ -230,6 +296,39 @@
 
   /* --- JOB DATA + UTILITIES --- */
   const JOBS = window.JOBS || [];
+
+  /* --- Preferences (localStorage) --- */
+  const PREF_KEY = 'jobTrackerPreferences';
+
+  function loadPreferences() {
+    try {
+      const raw = localStorage.getItem(PREF_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function savePreferences(prefs) {
+    try {
+      localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function getPreferencesOrDefaults() {
+    const p = loadPreferences() || {};
+    return {
+      roleKeywords: Array.isArray(p.roleKeywords) ? p.roleKeywords : (p.roleKeywords ? p.roleKeywords : ''),
+      preferredLocations: Array.isArray(p.preferredLocations) ? p.preferredLocations : (p.preferredLocations || []),
+      preferredMode: Array.isArray(p.preferredMode) ? p.preferredMode : (p.preferredMode || []),
+      experienceLevel: p.experienceLevel || '',
+      skills: Array.isArray(p.skills) ? p.skills : (p.skills || ''),
+      minMatchScore: typeof p.minMatchScore === 'number' ? p.minMatchScore : 40
+    };
+  }
 
   function getSavedIds() {
     try {
@@ -362,6 +461,18 @@
     source.className = 'badge source';
     source.textContent = job.source;
     badges.appendChild(source);
+    // match score badge (if present)
+    if (typeof job._matchScore === 'number') {
+      const ms = document.createElement('div');
+      ms.className = 'badge badge-score';
+      const s = job._matchScore;
+      ms.textContent = `${s}`;
+      if (s >= 80) ms.classList.add('badge-score--green');
+      else if (s >= 60) ms.classList.add('badge-score--amber');
+      else if (s >= 40) ms.classList.add('badge-score--neutral');
+      else ms.classList.add('badge-score--muted');
+      badges.appendChild(ms);
+    }
     header.appendChild(title);
     header.appendChild(badges);
     card.appendChild(header);
@@ -404,7 +515,8 @@
     mode: '',
     experience: '',
     source: '',
-    sort: 'latest'
+    sort: 'latest',
+    showOnlyMatches: false
   };
 
   function applyFilters(list) {
@@ -425,16 +537,100 @@
     if (filters.source) {
       out = out.filter(j => j.source === filters.source);
     }
+    // Sorting: latest, oldest, match, salary
     if (filters.sort === 'latest') {
       out.sort((a,b)=> a.postedDaysAgo - b.postedDaysAgo);
-    } else {
+    } else if (filters.sort === 'oldest') {
       out.sort((a,b)=> b.postedDaysAgo - a.postedDaysAgo);
+    } else if (filters.sort === 'match') {
+      out.sort((a,b)=> (b._matchScore || 0) - (a._matchScore || 0));
+    } else if (filters.sort === 'salary') {
+      out.sort((a,b)=> salaryToLPA(b) - salaryToLPA(a));
     }
     return out;
   }
 
   function uniqueValues(list, key) {
     return Array.from(new Set(list.map(j => j[key]))).filter(Boolean).sort();
+  }
+
+  /* --- Matching engine --- */
+  function normalizeText(s) {
+    return (s || '').toString().toLowerCase();
+  }
+
+  function skillsArray(input) {
+    if (!input) return [];
+    if (Array.isArray(input)) return input.map(s=>s.toLowerCase());
+    return input.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  }
+
+  function computeMatchScore(job, prefs) {
+    let score = 0;
+    const roleKeywords = Array.isArray(prefs.roleKeywords) ? prefs.roleKeywords.map(s=>s.toLowerCase()) : skillsArray(prefs.roleKeywords);
+    const jobTitle = normalizeText(job.title);
+    const jobDesc = normalizeText(job.description);
+    // +25 if any roleKeyword appears in job.title (case-insensitive)
+    if (roleKeywords.some(k => k && jobTitle.includes(k))) score += 25;
+    // +15 if any roleKeyword appears in job.description
+    if (roleKeywords.some(k => k && jobDesc.includes(k))) score += 15;
+    // +15 if job.location matches preferredLocations
+    if (prefs.preferredLocations && prefs.preferredLocations.includes(job.location)) score += 15;
+    // +10 if job.mode matches preferredMode (any)
+    if (prefs.preferredMode && prefs.preferredMode.includes(job.mode)) score += 10;
+    // +10 if job.experience matches experienceLevel
+    if (prefs.experienceLevel && prefs.experienceLevel === job.experience) score += 10;
+    // +15 if overlap between job.skills and user.skills
+    const userSkills = skillsArray(prefs.skills);
+    const jobSkills = (job.skills || []).map(s=>s.toLowerCase());
+    if (userSkills.length && jobSkills.some(js => userSkills.includes(js))) score += 15;
+    // +5 if postedDaysAgo <= 2
+    if (typeof job.postedDaysAgo === 'number' && job.postedDaysAgo <= 2) score += 5;
+    // +5 if source is LinkedIn
+    if (job.source === 'LinkedIn') score += 5;
+    if (score > 100) score = 100;
+    return score;
+  }
+
+  function computeAllMatchScores() {
+    const prefs = loadPreferences() || {};
+    JOBS.forEach(job => {
+      job._matchScore = computeMatchScore(job, prefs);
+    });
+  }
+
+  function salaryToLPA(job) {
+    if (!job || !job.salaryRange) return 0;
+    const s = job.salaryRange;
+    // examples: "3–5 LPA", "10–18 LPA", "₹15k–₹40k/month Internship"
+    // extract all numbers with optional k
+    const parts = s.match(/(\d+(?:\.\d+)?k?)/g);
+    if (!parts || parts.length === 0) return 0;
+    const nums = parts.map(p => {
+      if (p.toLowerCase().endsWith('k')) {
+        return parseFloat(p.slice(0,-1)) * 1000; // rupees
+      }
+      return parseFloat(p);
+    });
+    // determine if range in LPA or rupees/month by presence of 'LPA' or '/month'
+    if (s.toLowerCase().includes('lpa')) {
+      // nums are in lakhs (e.g., 3,5)
+      const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
+      return avg; // already in LPA
+    } else if (s.toLowerCase().includes('/month') || s.toLowerCase().includes('month')) {
+      // nums are in rupees per month, convert to annual LPA
+      const avgRupees = nums.reduce((a,b)=>a+b,0)/nums.length;
+      const annual = avgRupees * 12;
+      return Math.round((annual / 100000) * 100)/100;
+    } else {
+      // fallback: treat numbers as LPA if reasonable (>10 treat as rupees)
+      const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
+      if (avg > 1000) {
+        // rupees annual, convert
+        return Math.round((avg / 100000) * 100)/100;
+      }
+      return avg;
+    }
   }
 
   function renderDashboard() {
@@ -447,9 +643,40 @@
     heading.textContent = 'Dashboard';
     container.appendChild(heading);
 
+    // preferences check banner
+    const prefs = loadPreferences();
+    if (!prefs) {
+      const banner = document.createElement('div');
+      banner.className = 'card';
+      banner.style.borderLeft = `4px solid ${getComputedStyle(document.documentElement).getPropertyValue('--color-accent')}`;
+      banner.style.padding = '12px';
+      banner.style.marginBottom = '16px';
+      const btext = document.createElement('div');
+      btext.textContent = 'Set your preferences to activate intelligent matching.';
+      banner.appendChild(btext);
+      container.appendChild(banner);
+    } else {
+      // compute match scores when preferences exist
+      computeAllMatchScores();
+    }
+
     // filter bar
     const filterBar = document.createElement('div');
     filterBar.className = 'filter-bar';
+
+    // show only matches toggle
+    const fiMatchToggle = document.createElement('div');
+    fiMatchToggle.className = 'filter-item';
+    const labMatchToggle = document.createElement('label');
+    labMatchToggle.textContent = 'Show only jobs above my threshold';
+    const toggleInput = document.createElement('input');
+    toggleInput.type = 'checkbox';
+    toggleInput.style.marginLeft = '8px';
+    toggleInput.checked = !!filters.showOnlyMatches;
+    toggleInput.addEventListener('change', (e)=>{ filters.showOnlyMatches = e.target.checked; renderJobList(); });
+    fiMatchToggle.appendChild(labMatchToggle);
+    fiMatchToggle.appendChild(toggleInput);
+    filterBar.appendChild(fiMatchToggle);
 
     // search
     const fiSearch = document.createElement('div');
@@ -536,7 +763,9 @@
     selSort.className = 'filter-select';
     const sLatest = document.createElement('option'); sLatest.value='latest'; sLatest.textContent='Latest';
     const sOld = document.createElement('option'); sOld.value='oldest'; sOld.textContent='Oldest';
-    selSort.appendChild(sLatest); selSort.appendChild(sOld);
+    const sMatch = document.createElement('option'); sMatch.value='match'; sMatch.textContent='Match score';
+    const sSalary = document.createElement('option'); sSalary.value='salary'; sSalary.textContent='Salary';
+    selSort.appendChild(sLatest); selSort.appendChild(sOld); selSort.appendChild(sMatch); selSort.appendChild(sSalary);
     selSort.value = filters.sort;
     selSort.addEventListener('change', (e)=>{ filters.sort = e.target.value; renderJobList(); });
     fiSort.appendChild(labSort);
@@ -559,19 +788,38 @@
 
   function renderJobList() {
     const listWrap = document.getElementById('jobs-list');
-    listWrap.innerHTML = '';
+    if (!listWrap) return;
     const filtered = applyFilters(JOBS);
-    if (!filtered.length) {
+    // compute match scores if preferences set
+    computeAllMatchScores();
+    // apply showOnlyMatches if enabled and preferences exist
+    const prefs = loadPreferences();
+    let finalList = filtered;
+    if (filters.showOnlyMatches && prefs) {
+      const threshold = Number(prefs.minMatchScore || 40);
+      finalList = finalList.filter(j => (j._matchScore || 0) >= threshold);
+    }
+    // performance: avoid re-render when IDs identical
+    const newIds = finalList.map(j=>j.id).join(',');
+    if (renderJobList._lastIds === newIds) return;
+    renderJobList._lastIds = newIds;
+    listWrap.innerHTML = '';
+    if (!finalList.length) {
       const empty = document.createElement('div');
       empty.className = 'placeholder card';
       const title = document.createElement('h2');
       title.className = 'ph-title';
-      title.textContent = 'No jobs match your search.';
+      // Edge case: preferences exist but no matches
+      if (prefs && filters.showOnlyMatches) {
+        title.textContent = 'No roles match your criteria. Adjust filters or lower threshold.';
+      } else {
+        title.textContent = 'No jobs match your search.';
+      }
       empty.appendChild(title);
       listWrap.appendChild(empty);
       return;
     }
-    filtered.forEach(job => {
+    finalList.forEach(job => {
       const card = renderJobCard(job);
       listWrap.appendChild(card);
     });

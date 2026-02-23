@@ -245,6 +245,31 @@
 .badge.source {
   border-color: var(--color-border-muted);
 }
+.badge-score {
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.badge-score--green {
+  background: transparent;
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+}
+.badge-score--amber {
+  background: transparent;
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+}
+.badge-score--neutral {
+  background: transparent;
+  border: 1px solid var(--color-border-muted);
+  color: var(--color-text-primary);
+}
+.badge-score--muted {
+  background: transparent;
+  border: 1px solid rgba(17,17,17,0.2);
+  color: rgba(17,17,17,0.6);
+}
 .job-actions {
   display: flex;
   gap: var(--space-sm);

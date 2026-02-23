@@ -1,0 +1,94 @@
+/* App-specific styles for the route shell */
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.nav-list {
+  list-style: none;
+  display: flex;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  align-items: center;
+}
+.nav__link {
+  text-decoration: none;
+  color: var(--color-text-primary);
+  padding: 6px 0;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+  transition: border-color var(--motion-duration) var(--motion-easing);
+  font-family: var(--font-body);
+}
+.nav__link:hover {
+  /* subtle, non-flashy hover */
+  opacity: 0.95;
+}
+.nav__link.active {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+/* Placeholders */
+.placeholder {
+  grid-column: 1 / -1;
+  max-width: var(--max-text-width);
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+  background: transparent;
+}
+.ph-title {
+  font-family: var(--font-heading);
+  font-size: 36px;
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--color-text-primary);
+}
+.ph-sub {
+  margin: 0;
+  color: rgba(17,17,17,0.75);
+  max-width: var(--max-text-width);
+}
+
+/* Mobile: collapse nav into dropdown */
+#nav-toggle {
+  display: none;
+}
+.nav-list--mobile {
+  display: none;
+  position: absolute;
+  right: var(--space-md);
+  top: calc(100% + 8px);
+  background: var(--color-surface);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  border-radius: var(--radius-base);
+  padding: var(--space-sm);
+  min-width: 180px;
+  z-index: 40;
+}
+.nav-list--mobile li {
+  margin: 0;
+}
+.nav-list--mobile .nav__link {
+  display: block;
+  padding: 8px 12px;
+  border-bottom: none;
+}
+
+@media (max-width: 720px) {
+  .page {
+    display: block;
+    padding: var(--space-md);
+  }
+  .nav-list {
+    display: none;
+  }
+  #nav-toggle {
+    display: inline-flex;
+  }
+  .nav-list--mobile[aria-hidden="false"] {
+    display: block;
+  }
+}
+

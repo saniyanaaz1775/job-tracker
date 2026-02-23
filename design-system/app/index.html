@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Job Notification — Design System Shell</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <header class="topbar" role="banner">
+    <div style="display:flex;align-items:center;gap:var(--space-sm);">
+      <a id="brand" href="#/" class="topbar__brand">Job Notification App</a>
+    </div>
+
+    <nav id="main-nav" class="main-nav" aria-label="Primary">
+      <button id="nav-toggle" class="btn btn--ghost" aria-expanded="false" aria-controls="nav-list" aria-label="Menu">☰</button>
+      <ul id="nav-list" class="nav-list" role="menubar">
+        <li role="none"><a role="menuitem" class="nav__link" href="#/dashboard">Dashboard</a></li>
+        <li role="none"><a role="menuitem" class="nav__link" href="#/saved">Saved</a></li>
+        <li role="none"><a role="menuitem" class="nav__link" href="#/digest">Digest</a></li>
+        <li role="none"><a role="menuitem" class="nav__link" href="#/settings">Settings</a></li>
+        <li role="none"><a role="menuitem" class="nav__link" href="#/proof">Proof</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="app" class="page" role="main" aria-live="polite">
+    <!-- Route content will be injected here -->
+  </main>
+
+  <footer id="site-footer" class="proof-footer" role="contentinfo" aria-label="Proof footer">
+    <div class="proof-footer__item">□ UI Built</div>
+    <div class="proof-footer__item">□ Logic Working</div>
+    <div class="proof-footer__item">□ Test Passed</div>
+    <div class="proof-footer__item">□ Deployed</div>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
+

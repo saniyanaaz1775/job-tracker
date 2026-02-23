@@ -251,16 +251,218 @@
 
   function renderDigest() {
     app.innerHTML = '';
+    const prefs = loadPreferences();
     const container = document.createElement('div');
-    container.className = 'placeholder card';
-    const title = document.createElement('h1');
-    title.className = 'ph-title';
-    title.textContent = 'Digest';
-    const sub = document.createElement('p');
-    sub.className = 'ph-sub muted';
-    sub.textContent = 'Daily summary coming soon — a concise digest delivered at 9AM.';
-    container.appendChild(title);
-    container.appendChild(sub);
+    container.className = 'digest-container';
+
+    if (!prefs || !prefs.roleKeywords || prefs.roleKeywords.length === 0) {
+      const block = document.createElement('div');
+      block.className = 'card';
+      block.style.padding = '16px';
+      const msg = document.createElement('div');
+      msg.textContent = 'Set preferences to generate a personalized digest.';
+      block.appendChild(msg);
+      container.appendChild(block);
+      app.appendChild(container);
+      return;
+    }
+
+    // header + actions
+    const header = document.createElement('div');
+    header.className = 'digest-header';
+    const title = document.createElement('h2');
+    title.className = 'title';
+    title.textContent = 'Top 10 Jobs For You — 9AM Digest';
+    const date = document.createElement('p');
+    date.className = 'date';
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,'0');
+    const dd = String(today.getDate()).padStart(2,'0');
+    const isoDay = `${yyyy}-${mm}-${dd}`;
+    date.textContent = `Date: ${isoDay}`;
+    header.appendChild(title);
+    header.appendChild(date);
+
+    const actions = document.createElement('div');
+    actions.className = 'digest-actions';
+    const genBtn = document.createElement('button');
+    genBtn.className = 'btn btn--primary';
+    genBtn.textContent = `Generate Today's 9AM Digest (Simulated)`;
+    actions.appendChild(genBtn);
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn--secondary';
+    copyBtn.textContent = 'Copy Digest to Clipboard';
+    copyBtn.disabled = true;
+    actions.appendChild(copyBtn);
+    const mailBtn = document.createElement('button');
+    mailBtn.className = 'btn btn--ghost';
+    mailBtn.textContent = 'Create Email Draft';
+    mailBtn.disabled = true;
+    actions.appendChild(mailBtn);
+
+    container.appendChild(header);
+    container.appendChild(actions);
+
+    const note = document.createElement('div');
+    note.className = 'digest-note';
+    note.textContent = 'Demo Mode: Daily 9AM trigger simulated manually.';
+    container.appendChild(note);
+
+    // load existing digest if present
+    const storageKey = `jobTrackerDigest_${isoDay}`;
+    let digest = null;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) digest = JSON.parse(raw);
+    } catch (e) {
+      digest = null;
+    }
+
+    function renderDigestFromList(list) {
+      // remove old list if any
+      const existing = container.querySelectorAll('.digest-job, .digest-footer');
+      existing.forEach(n => n.remove());
+      if (!list || !list.length) {
+        const empty = document.createElement('div');
+        empty.className = 'placeholder card';
+        const t = document.createElement('h3');
+        t.className = 'ph-title';
+        t.textContent = 'No matching roles today. Check again tomorrow.';
+        empty.appendChild(t);
+        container.appendChild(empty);
+        return;
+      }
+      list.forEach((job) => {
+        const row = document.createElement('div');
+        row.className = 'digest-job';
+        const left = document.createElement('div');
+        left.className = 'left';
+        const jt = document.createElement('div');
+        jt.className = 'title';
+        jt.textContent = job.title;
+        const jm = document.createElement('p');
+        jm.className = 'meta';
+        jm.textContent = `${job.company} • ${job.location} • ${job.experience}`;
+        left.appendChild(jt);
+        left.appendChild(jm);
+        const right = document.createElement('div');
+        right.className = 'right';
+        const score = document.createElement('div');
+        score.className = 'badge badge-score';
+        score.textContent = `${job._matchScore || 0}`;
+        if ((job._matchScore || 0) >= 80) score.classList.add('badge-score--green');
+        else if ((job._matchScore || 0) >= 60) score.classList.add('badge-score--amber');
+        else if ((job._matchScore || 0) >= 40) score.classList.add('badge-score--neutral');
+        else score.classList.add('badge-score--muted');
+        const apply = document.createElement('button');
+        apply.className = 'btn btn--primary';
+        apply.textContent = 'Apply';
+        apply.addEventListener('click', ()=> window.open(job.applyUrl, '_blank'));
+        right.appendChild(score);
+        right.appendChild(apply);
+        row.appendChild(left);
+        row.appendChild(right);
+        container.appendChild(row);
+      });
+
+      const footer = document.createElement('div');
+      footer.className = 'digest-footer';
+      footer.textContent = 'This digest was generated based on your preferences.';
+      container.appendChild(footer);
+    }
+
+    function formatDigestText(list) {
+      const headerLine = `Top 10 Jobs For You — 9AM Digest\nDate: ${isoDay}\n\n`;
+      const body = list.map((job, i) => {
+        return `${i+1}. ${job.title} — ${job.company}\n   ${job.location} | ${job.experience} | Match: ${job._matchScore || 0}\n   Apply: ${job.applyUrl}\n`;
+      }).join('\n');
+      return headerLine + body + `\nThis digest was generated based on your preferences.\n`;
+    }
+
+    function generateAndStoreDigest() {
+      // ensure match scores computed
+      computeAllMatchScores();
+      // select top 10 sorted by matchScore desc, postedDaysAgo asc
+      const list = JOBS.slice().sort((a,b)=>{
+        const s = (b._matchScore || 0) - (a._matchScore || 0);
+        if (s !== 0) return s;
+        return a.postedDaysAgo - b.postedDaysAgo;
+      }).slice(0,10);
+      const payload = { createdAt: new Date().toISOString(), jobs: list };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+        digest = payload;
+      } catch (e) {
+        // ignore
+      }
+      return list;
+    }
+
+    // wire up buttons
+    if (digest && digest.jobs && digest.jobs.length) {
+      // render existing
+      renderDigestFromList(digest.jobs);
+      copyBtn.disabled = false;
+      mailBtn.disabled = false;
+    }
+
+    genBtn.addEventListener('click', ()=> {
+      if (!prefs) {
+        alert('Set preferences to generate personalized digest.');
+        return;
+      }
+      // if already exists, load existing instead
+      if (digest) {
+        renderDigestFromList(digest.jobs);
+        copyBtn.disabled = false;
+        mailBtn.disabled = false;
+        return;
+      }
+      const list = generateAndStoreDigest();
+      renderDigestFromList(list);
+      copyBtn.disabled = false;
+      mailBtn.disabled = false;
+    });
+
+    copyBtn.addEventListener('click', async ()=> {
+      const current = digest && digest.jobs ? digest.jobs : null;
+      if (!current) return;
+      const text = formatDigestText(current);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          // subtle feedback
+          copyBtn.textContent = 'Copied';
+          setTimeout(()=> copyBtn.textContent = 'Copy Digest to Clipboard', 1500);
+        } catch (e) {
+          // fallback
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+    });
+
+    mailBtn.addEventListener('click', ()=> {
+      const current = digest && digest.jobs ? digest.jobs : null;
+      if (!current) return;
+      const body = formatDigestText(current);
+      const subject = 'My 9AM Job Digest';
+      const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    });
+
     app.appendChild(container);
   }
 

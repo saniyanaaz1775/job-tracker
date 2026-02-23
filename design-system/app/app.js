@@ -5,6 +5,7 @@
   const app = document.getElementById('app');
   const navList = document.getElementById('nav-list');
   const navToggle = document.getElementById('nav-toggle');
+  const modal = document.getElementById('modal');
 
   function normalize(path) {
     if (!path) return '/';
@@ -148,16 +149,37 @@
 
   function renderSaved() {
     app.innerHTML = '';
-    const container = document.createElement('div');
-    container.className = 'placeholder card';
-    const title = document.createElement('h1');
-    title.className = 'ph-title';
-    title.textContent = 'Saved';
-    const sub = document.createElement('p');
-    sub.className = 'ph-sub muted';
-    sub.textContent = 'Your saved jobs will appear here. For now, this premium space is ready for your first saves.';
-    container.appendChild(title);
-    container.appendChild(sub);
+    const container = document.createElement('section');
+    container.className = 'card';
+    const heading = document.createElement('h1');
+    heading.className = 'ph-title';
+    heading.textContent = 'Saved';
+    container.appendChild(heading);
+
+    const ids = getSavedIds();
+    if (!ids.length) {
+      const empty = document.createElement('div');
+      empty.className = 'placeholder card';
+      const title = document.createElement('h2');
+      title.className = 'ph-title';
+      title.textContent = 'No saved jobs yet';
+      const sub = document.createElement('p');
+      sub.className = 'ph-sub muted';
+      sub.textContent = 'Save jobs from the Dashboard to view them here. Your saved items persist across reloads.';
+      empty.appendChild(title);
+      empty.appendChild(sub);
+      app.appendChild(empty);
+      return;
+    }
+
+    const listWrap = document.createElement('div');
+    listWrap.className = 'jobs-grid';
+    const savedJobs = JOBS.filter(j => ids.includes(j.id));
+    savedJobs.forEach(j => {
+      const card = renderJobCard(j);
+      listWrap.appendChild(card);
+    });
+    container.appendChild(listWrap);
     app.appendChild(container);
   }
 
@@ -190,6 +212,371 @@
     container.appendChild(sub);
     app.appendChild(container);
   }
+
+  function render404() {
+    app.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'placeholder card';
+    const title = document.createElement('h1');
+    title.className = 'ph-title';
+    title.textContent = 'Page Not Found';
+    const sub = document.createElement('p');
+    sub.className = 'ph-sub muted';
+    sub.textContent = 'The page you are looking for does not exist.';
+    container.appendChild(title);
+    container.appendChild(sub);
+    app.appendChild(container);
+  }
+
+  /* --- JOB DATA + UTILITIES --- */
+  const JOBS = window.JOBS || [];
+
+  function getSavedIds() {
+    try {
+      const raw = localStorage.getItem('savedJobs');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function setSavedIds(ids) {
+    try {
+      localStorage.setItem('savedJobs', JSON.stringify(ids));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function isSaved(id) {
+    return getSavedIds().includes(id);
+  }
+
+  function toggleSave(id) {
+    const ids = getSavedIds();
+    const idx = ids.indexOf(id);
+    if (idx === -1) {
+      ids.push(id);
+    } else {
+      ids.splice(idx, 1);
+    }
+    setSavedIds(ids);
+    // re-render current route
+    handleRoute();
+  }
+
+  function openModal(job) {
+    if (!modal) return;
+    modal.setAttribute('aria-hidden', 'false');
+    modal.innerHTML = '';
+    const panel = document.createElement('div');
+    panel.className = 'modal__panel card';
+    const h = document.createElement('h2');
+    h.className = 'modal__title';
+    h.textContent = `${job.title} — ${job.company}`;
+    panel.appendChild(h);
+
+    const meta = document.createElement('p');
+    meta.className = 'job-meta';
+    meta.textContent = `${job.location} • ${job.mode} • ${job.experience} • ${job.salaryRange}`;
+    panel.appendChild(meta);
+
+    const desc = document.createElement('div');
+    desc.className = 'modal__section';
+    const pre = document.createElement('p');
+    pre.textContent = job.description;
+    desc.appendChild(pre);
+    panel.appendChild(desc);
+
+    const skills = document.createElement('div');
+    skills.className = 'modal__section';
+    const skHead = document.createElement('div');
+    skHead.textContent = 'Skills';
+    skHead.style.fontWeight = 600;
+    skills.appendChild(skHead);
+    const list = document.createElement('div');
+    list.className = 'skills-list';
+    job.skills.forEach((s) => {
+      const sp = document.createElement('div');
+      sp.className = 'skill';
+      sp.textContent = s;
+      list.appendChild(sp);
+    });
+    skills.appendChild(list);
+    panel.appendChild(skills);
+
+    const actions = document.createElement('div');
+    actions.className = 'job-actions';
+    const apply = document.createElement('button');
+    apply.className = 'btn btn--primary';
+    apply.textContent = 'Apply';
+    apply.addEventListener('click', () => {
+      window.open(job.applyUrl, '_blank');
+    });
+    const close = document.createElement('button');
+    close.className = 'btn btn--ghost';
+    close.textContent = 'Close';
+    close.addEventListener('click', closeModal);
+    actions.appendChild(apply);
+    actions.appendChild(close);
+    panel.appendChild(actions);
+
+    modal.appendChild(panel);
+    // focus on panel for accessibility
+    panel.setAttribute('tabindex', '-1');
+    panel.focus();
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.setAttribute('aria-hidden', 'true');
+    modal.innerHTML = '';
+  }
+
+  // close modal on outside click or Esc
+  document.addEventListener('click', (e) => {
+    if (!modal) return;
+    if (modal.getAttribute('aria-hidden') === 'false' && e.target === modal) {
+      closeModal();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!modal) return;
+    if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
+      closeModal();
+    }
+  });
+
+  /* --- JOB LIST RENDERING + FILTERS --- */
+  function renderJobCard(job) {
+    const card = document.createElement('article');
+    card.className = 'job-card';
+    const header = document.createElement('div');
+    header.className = 'job-card__header';
+    const title = document.createElement('h3');
+    title.className = 'job-title';
+    title.textContent = job.title;
+    const badges = document.createElement('div');
+    badges.className = 'job-badges';
+    const source = document.createElement('div');
+    source.className = 'badge source';
+    source.textContent = job.source;
+    badges.appendChild(source);
+    header.appendChild(title);
+    header.appendChild(badges);
+    card.appendChild(header);
+
+    const meta = document.createElement('div');
+    meta.className = 'job-meta';
+    meta.textContent = `${job.company} • ${job.location} • ${job.mode}`;
+    card.appendChild(meta);
+
+    const details = document.createElement('div');
+    details.className = 'job-meta';
+    details.textContent = `${job.experience} • ${job.salaryRange} • ${job.postedDaysAgo} days ago`;
+    card.appendChild(details);
+
+    const actions = document.createElement('div');
+    actions.className = 'job-actions';
+    const view = document.createElement('button');
+    view.className = 'btn';
+    view.textContent = 'View';
+    view.addEventListener('click', () => openModal(job));
+    const save = document.createElement('button');
+    save.className = 'btn btn--secondary';
+    save.textContent = isSaved(job.id) ? 'Saved' : 'Save';
+    save.addEventListener('click', () => toggleSave(job.id));
+    const apply = document.createElement('button');
+    apply.className = 'btn btn--primary';
+    apply.textContent = 'Apply';
+    apply.addEventListener('click', () => window.open(job.applyUrl, '_blank'));
+    actions.appendChild(view);
+    actions.appendChild(save);
+    actions.appendChild(apply);
+    card.appendChild(actions);
+    return card;
+  }
+
+  // Filters and state (local only)
+  let filters = {
+    q: '',
+    location: '',
+    mode: '',
+    experience: '',
+    source: '',
+    sort: 'latest'
+  };
+
+  function applyFilters(list) {
+    let out = list.slice();
+    const q = filters.q.trim().toLowerCase();
+    if (q) {
+      out = out.filter(j => (j.title + ' ' + j.company).toLowerCase().includes(q));
+    }
+    if (filters.location) {
+      out = out.filter(j => j.location === filters.location);
+    }
+    if (filters.mode) {
+      out = out.filter(j => j.mode === filters.mode);
+    }
+    if (filters.experience) {
+      out = out.filter(j => j.experience === filters.experience);
+    }
+    if (filters.source) {
+      out = out.filter(j => j.source === filters.source);
+    }
+    if (filters.sort === 'latest') {
+      out.sort((a,b)=> a.postedDaysAgo - b.postedDaysAgo);
+    } else {
+      out.sort((a,b)=> b.postedDaysAgo - a.postedDaysAgo);
+    }
+    return out;
+  }
+
+  function uniqueValues(list, key) {
+    return Array.from(new Set(list.map(j => j[key]))).filter(Boolean).sort();
+  }
+
+  function renderDashboard() {
+    app.innerHTML = '';
+    const container = document.createElement('section');
+    container.className = 'card';
+    // heading
+    const heading = document.createElement('h1');
+    heading.className = 'ph-title';
+    heading.textContent = 'Dashboard';
+    container.appendChild(heading);
+
+    // filter bar
+    const filterBar = document.createElement('div');
+    filterBar.className = 'filter-bar';
+
+    // search
+    const fiSearch = document.createElement('div');
+    fiSearch.className = 'filter-item';
+    const labSearch = document.createElement('label');
+    labSearch.textContent = 'Keyword';
+    const inputSearch = document.createElement('input');
+    inputSearch.className = 'filter-input';
+    inputSearch.placeholder = 'Title or company';
+    inputSearch.value = filters.q;
+    inputSearch.addEventListener('input', (e)=>{ filters.q = e.target.value; renderJobList(); });
+    fiSearch.appendChild(labSearch);
+    fiSearch.appendChild(inputSearch);
+    filterBar.appendChild(fiSearch);
+
+    // location
+    const fiLoc = document.createElement('div');
+    fiLoc.className = 'filter-item';
+    const labLoc = document.createElement('label');
+    labLoc.textContent = 'Location';
+    const selLoc = document.createElement('select');
+    selLoc.className = 'filter-select';
+    const locs = uniqueValues(JOBS, 'location');
+    const optAny = document.createElement('option'); optAny.value=''; optAny.textContent='Any';
+    selLoc.appendChild(optAny);
+    locs.forEach(l => { const o=document.createElement('option'); o.value=l; o.textContent=l; selLoc.appendChild(o);});
+    selLoc.value = filters.location;
+    selLoc.addEventListener('change', (e)=>{ filters.location = e.target.value; renderJobList(); });
+    fiLoc.appendChild(labLoc);
+    fiLoc.appendChild(selLoc);
+    filterBar.appendChild(fiLoc);
+
+    // mode
+    const fiMode = document.createElement('div');
+    fiMode.className = 'filter-item';
+    const labMode = document.createElement('label');
+    labMode.textContent = 'Mode';
+    const selMode = document.createElement('select');
+    selMode.className = 'filter-select';
+    ['','Remote','Hybrid','Onsite'].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m||'Any'; selMode.appendChild(o);});
+    selMode.value = filters.mode;
+    selMode.addEventListener('change', (e)=>{ filters.mode = e.target.value; renderJobList(); });
+    fiMode.appendChild(labMode);
+    fiMode.appendChild(selMode);
+    filterBar.appendChild(fiMode);
+
+    // experience
+    const fiExp = document.createElement('div');
+    fiExp.className = 'filter-item';
+    const labExp = document.createElement('label');
+    labExp.textContent = 'Experience';
+    const selExp = document.createElement('select');
+    selExp.className = 'filter-select';
+    ['', 'Fresher','0-1','1-3','3-5'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'Any'; selExp.appendChild(o);});
+    selExp.value = filters.experience;
+    selExp.addEventListener('change', (e)=>{ filters.experience = e.target.value; renderJobList(); });
+    fiExp.appendChild(labExp);
+    fiExp.appendChild(selExp);
+    filterBar.appendChild(fiExp);
+
+    // source
+    const fiSrc = document.createElement('div');
+    fiSrc.className = 'filter-item';
+    const labSrc = document.createElement('label');
+    labSrc.textContent = 'Source';
+    const selSrc = document.createElement('select');
+    selSrc.className = 'filter-select';
+    const srcs = uniqueValues(JOBS, 'source');
+    const optAny2 = document.createElement('option'); optAny2.value=''; optAny2.textContent='Any';
+    selSrc.appendChild(optAny2);
+    srcs.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; selSrc.appendChild(o);});
+    selSrc.value = filters.source;
+    selSrc.addEventListener('change', (e)=>{ filters.source = e.target.value; renderJobList(); });
+    fiSrc.appendChild(labSrc);
+    fiSrc.appendChild(selSrc);
+    filterBar.appendChild(fiSrc);
+
+    // sort
+    const fiSort = document.createElement('div');
+    fiSort.className = 'filter-item';
+    const labSort = document.createElement('label');
+    labSort.textContent = 'Sort';
+    const selSort = document.createElement('select');
+    selSort.className = 'filter-select';
+    const sLatest = document.createElement('option'); sLatest.value='latest'; sLatest.textContent='Latest';
+    const sOld = document.createElement('option'); sOld.value='oldest'; sOld.textContent='Oldest';
+    selSort.appendChild(sLatest); selSort.appendChild(sOld);
+    selSort.value = filters.sort;
+    selSort.addEventListener('change', (e)=>{ filters.sort = e.target.value; renderJobList(); });
+    fiSort.appendChild(labSort);
+    fiSort.appendChild(selSort);
+    filterBar.appendChild(fiSort);
+
+    container.appendChild(filterBar);
+
+    // job list area
+    const listWrap = document.createElement('div');
+    listWrap.id = 'jobs-list';
+    listWrap.className = 'jobs-grid';
+    container.appendChild(listWrap);
+
+    app.appendChild(container);
+
+    // initial render of list
+    renderJobList();
+  }
+
+  function renderJobList() {
+    const listWrap = document.getElementById('jobs-list');
+    listWrap.innerHTML = '';
+    const filtered = applyFilters(JOBS);
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'placeholder card';
+      const title = document.createElement('h2');
+      title.className = 'ph-title';
+      title.textContent = 'No jobs match your search.';
+      empty.appendChild(title);
+      listWrap.appendChild(empty);
+      return;
+    }
+    filtered.forEach(job => {
+      const card = renderJobCard(job);
+      listWrap.appendChild(card);
+    });
+  }
+
 
   function render404() {
     app.innerHTML = '';

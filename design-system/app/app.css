@@ -425,6 +425,71 @@
   font-size:12px;
   color:rgba(17,17,17,0.7);
 }
+
+/* Test checklist */
+.test-container {
+  max-width: 720px;
+  margin: var(--space-lg) auto;
+  background: var(--color-surface);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  border-radius: var(--radius-base);
+  padding: var(--space-lg);
+}
+.test-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.test-summary {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  margin: 0;
+}
+.test-warning {
+  color: #C47A00;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.test-list {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.test-item {
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+}
+.test-item label {
+  font-size:14px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.test-tooltip {
+  font-size:12px;
+  color: rgba(17,17,17,0.6);
+}
+.reset-tests {
+  margin-left: var(--space-sm);
+}
+
+/* Ship route lock */
+.ship-container {
+  max-width: 720px;
+  margin: var(--space-lg) auto;
+  text-align: center;
+}
+.locked-message {
+  padding: var(--space-lg);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  border-radius: var(--radius-base);
+  background: var(--color-surface);
+  font-family: var(--font-heading);
+  font-size: 18px;
+}
 .job-actions {
   display: flex;
   gap: var(--space-sm);

@@ -513,6 +513,148 @@
     app.appendChild(container);
   }
 
+  /* --- Test checklist & ship routes --- */
+  const TEST_KEY = 'jobTrackerTestStatus';
+  const TEST_ITEMS = [
+    'Preferences persist after refresh',
+    'Match score calculates correctly',
+    '"Show only matches" toggle works',
+    'Save job persists after refresh',
+    'Apply opens in new tab',
+    'Status update persists after refresh',
+    'Status filter works correctly',
+    'Digest generates top 10 by score',
+    'Digest persists for the day',
+    'No console errors on main pages'
+  ];
+
+  function loadTestStatus() {
+    try {
+      const raw = localStorage.getItem(TEST_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveTestStatus(map) {
+    try {
+      localStorage.setItem(TEST_KEY, JSON.stringify(map));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function resetTestStatus() {
+    try {
+      localStorage.removeItem(TEST_KEY);
+    } catch (e) {}
+    // re-render test page if visible
+    if (location.hash === '#/jt/07-test') renderTestChecklist();
+  }
+
+  function countPassedTests(map) {
+    let count = 0;
+    TEST_ITEMS.forEach((t, i) => {
+      if (map[`t${i}`]) count++;
+    });
+    return count;
+  }
+
+  function allTestsPassed(map) {
+    return countPassedTests(map) === TEST_ITEMS.length;
+  }
+
+  function renderTestChecklist() {
+    app.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'test-container';
+
+    const header = document.createElement('div');
+    header.className = 'test-header';
+    const title = document.createElement('h2');
+    title.className = 'test-summary';
+    title.textContent = 'Built-In Test Checklist';
+    header.appendChild(title);
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn--ghost reset-tests';
+    resetBtn.textContent = 'Reset Test Status';
+    resetBtn.addEventListener('click', () => {
+      resetTestStatus();
+      showToast('Test status reset');
+    });
+    header.appendChild(resetBtn);
+    container.appendChild(header);
+
+    const map = loadTestStatus();
+    const passed = countPassedTests(map);
+    const summary = document.createElement('div');
+    summary.className = 'muted';
+    summary.textContent = `Tests Passed: ${passed} / ${TEST_ITEMS.length}`;
+    container.appendChild(summary);
+    if (passed < TEST_ITEMS.length) {
+      const warn = document.createElement('div');
+      warn.className = 'test-warning';
+      warn.textContent = 'Resolve all issues before shipping.';
+      container.appendChild(warn);
+    }
+
+    const list = document.createElement('div');
+    list.className = 'test-list';
+    TEST_ITEMS.forEach((text, i) => {
+      const id = `t${i}`;
+      const item = document.createElement('div');
+      item.className = 'test-item';
+      const label = document.createElement('label');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!map[id];
+      cb.addEventListener('change', (e) => {
+        const m = loadTestStatus();
+        if (e.target.checked) m[id] = true;
+        else delete m[id];
+        saveTestStatus(m);
+        renderTestChecklist();
+      });
+      const textNode = document.createElement('span');
+      textNode.textContent = text;
+      const tip = document.createElement('span');
+      tip.className = 'test-tooltip';
+      tip.textContent = 'How to test';
+      tip.title = 'How to test';
+      label.appendChild(cb);
+      label.appendChild(textNode);
+      label.appendChild(tip);
+      item.appendChild(label);
+      list.appendChild(item);
+    });
+    container.appendChild(list);
+    app.appendChild(container);
+  }
+
+  function renderShipPage() {
+    app.innerHTML = '';
+    const map = loadTestStatus();
+    if (!allTestsPassed(map)) {
+      const wrap = document.createElement('div');
+      wrap.className = 'ship-container';
+      const locked = document.createElement('div');
+      locked.className = 'locked-message';
+      locked.textContent = 'Complete all tests before shipping.';
+      wrap.appendChild(locked);
+      app.appendChild(wrap);
+      return;
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'ship-container';
+    const msg = document.createElement('div');
+    msg.className = 'card';
+    msg.style.padding = '16px';
+    msg.textContent = 'All tests passed — ship unlocked. Proceed with deployment checklist outside this demo.';
+    wrap.appendChild(msg);
+    app.appendChild(wrap);
+  }
+
   function render404() {
     app.innerHTML = '';
     const container = document.createElement('div');
@@ -1220,6 +1362,17 @@
   function handleRoute() {
     const raw = location.hash || '#/';
     const path = normalize(raw);
+    // test & ship routes
+    if (path === '/jt/07-test') {
+      renderTestChecklist();
+      setActiveLink(path);
+      return;
+    }
+    if (path === '/jt/08-ship') {
+      renderShipPage();
+      setActiveLink(path);
+      return;
+    }
     if (path === '/') {
       renderHome();
     } else if (path === '/settings') {

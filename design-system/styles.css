@@ -1,0 +1,260 @@
+/* Design system baseline for Job Notification App */
+
+:root {
+  /* Colors */
+  --color-background: #F7F6F3;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #111111;
+  --color-accent: #8B0000;
+  --color-success: #3B7A57;
+  --color-warning: #C47A00;
+  --color-border-muted: #E6E4E1;
+
+  /* Typography */
+  --font-heading: Georgia, "Times New Roman", serif;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-body: 16px;
+  --lh-body: 1.7;
+  --max-text-width: 720px;
+
+  /* Spacing scale */
+  --space-xs: 8px;
+  --space-sm: 16px;
+  --space-md: 24px;
+  --space-lg: 40px;
+  --space-xl: 64px;
+
+  /* Radius & borders */
+  --radius-base: 8px;
+  --border-width: 1px;
+  --border-style: solid;
+
+  /* Motion */
+  --motion-duration: 180ms;
+  --motion-easing: cubic-bezier(.22,.1,.21,1);
+}
+
+/* Base reset */
+html,body {
+  height: 100%;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Layout structure
+   [Top Bar] → [Context Header] → [Primary Workspace (70%)] + [Secondary Panel (30%)] → [Proof Footer]
+*/
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: var(--border-width) var(--border-style) var(--color-border-muted);
+  background: var(--color-surface);
+}
+.topbar__brand {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  letter-spacing: 0.2px;
+}
+.topbar__progress {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  opacity: 0.9;
+}
+.topbar__status {
+  padding: 6px 10px;
+  border-radius: calc(var(--radius-base) / 1.25);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  background: transparent;
+  font-size: 13px;
+}
+
+.context-header {
+  padding: var(--space-lg) var(--space-md);
+  border-bottom: var(--border-width) var(--border-style) var(--color-border-muted);
+  max-width: var(--max-text-width);
+}
+.context-header__title {
+  font-family: var(--font-heading);
+  font-size: 36px;
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--color-text-primary);
+}
+.context-header__sub {
+  margin: 0;
+  color: var(--color-text-primary);
+  opacity: 0.85;
+  max-width: var(--max-text-width);
+}
+
+.page {
+  display: grid;
+  grid-template-columns: 70% 30%;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-md);
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--color-surface);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  border-radius: var(--radius-base);
+  padding: var(--space-md);
+  color: var(--color-text-primary);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-base);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--motion-duration) var(--motion-easing), color var(--motion-duration) var(--motion-easing), border-color var(--motion-duration) var(--motion-easing);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139,0,0,0.08);
+}
+.btn--primary {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+.btn--primary:hover {
+  filter: brightness(0.95);
+}
+.btn--secondary {
+  background: transparent;
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-primary);
+  border-color: var(--color-border-muted);
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: calc(var(--radius-base) - 2px);
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  background: transparent;
+  font-size: 15px;
+  transition: border-color var(--motion-duration) var(--motion-easing), box-shadow var(--motion-duration) var(--motion-easing);
+}
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(139,0,0,0.06);
+  outline: none;
+}
+.input--error {
+  border-color: var(--color-warning);
+}
+.field-help {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  opacity: 0.8;
+  margin-top: 8px;
+}
+
+/* Cards: minimal, subtle border, no shadows */
+.card__title {
+  margin: 0 0 var(--space-sm) 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+.card__body {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+/* Secondary panel */
+.secondary {
+  position: relative;
+}
+.secondary .card {
+  margin-bottom: var(--space-md);
+}
+.prompt-box {
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: #FAF9F8;
+  border: var(--border-width) var(--border-style) var(--color-border-muted);
+  padding: var(--space-sm);
+  border-radius: calc(var(--radius-base) - 2px);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.copy-btn {
+  margin-top: var(--space-sm);
+}
+
+/* Proof footer */
+.proof-footer {
+  border-top: var(--border-width) var(--border-style) var(--color-border-muted);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+.proof-footer__item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+/* Error / empty states */
+.state {
+  text-align: center;
+  padding: var(--space-lg);
+}
+.state__title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  margin-bottom: var(--space-sm);
+}
+.state__desc {
+  color: var(--color-text-primary);
+  opacity: 0.85;
+  margin-bottom: var(--space-sm);
+}
+.state__actions {
+  margin-top: var(--space-sm);
+}
+
+/* Utility */
+.muted {
+  color: rgba(17,17,17,0.65);
+}
+.visually-hidden {
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+

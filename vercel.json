@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "design-system/app/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/(.*\\.(js|css|png|jpg|svg|ico|json))", "dest": "/design-system/app/$1" },
+    { "src": "/(.*)", "dest": "/design-system/app/index.html" }
+  ]
+}
+

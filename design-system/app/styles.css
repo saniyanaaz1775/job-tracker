@@ -1,0 +1,53 @@
+/* Copied design system styles to ensure app is self-contained for static hosting */
+
+/* Design system baseline for Job Notification App */
+
+:root {
+  /* Colors */
+  --color-background: #F7F6F3;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #111111;
+  --color-accent: #8B0000;
+  --color-success: #3B7A57;
+  --color-warning: #C47A00;
+  --color-border-muted: #E6E4E1;
+
+  /* Typography */
+  --font-heading: Georgia, "Times New Roman", serif;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-body: 16px;
+  --lh-body: 1.7;
+  --max-text-width: 720px;
+
+  /* Spacing scale */
+  --space-xs: 8px;
+  --space-sm: 16px;
+  --space-md: 24px;
+  --space-lg: 40px;
+  --space-xl: 64px;
+
+  /* Radius & borders */
+  --radius-base: 8px;
+  --border-width: 1px;
+  --border-style: solid;
+
+  /* Motion */
+  --motion-duration: 180ms;
+  --motion-easing: cubic-bezier(.22,.1,.21,1);
+}
+
+/* Base reset */
+html,body {
+  height: 100%;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Keep the rest of the core styles minimal — app CSS will override specifics */
+
